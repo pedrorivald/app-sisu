@@ -24,7 +24,7 @@ services:
       - 15432:80
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-      - ./database/pgadmin_servers.json:/pgadmin4/servers.json
+      - ./api/database/pgadmin_servers.json:/pgadmin4/servers.json
     depends_on:
       - postgres
 

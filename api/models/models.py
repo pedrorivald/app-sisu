@@ -70,7 +70,7 @@ class PopulacaoPorIdade(Base):
   id = Column(String, primary_key=True)
   
   estado_id = Column(String, ForeignKey("estados.id"), nullable=False)
-  idade_id = Column(Integer, ForeignKey("idades.id"), nullable=False)
+  idade_id = Column(String, ForeignKey("idades.id"), nullable=False)
   ano = Column(Integer, nullable=False)  # Ano da projeção (ex: 2025, 2030, 2040)
   
   quantidade = Column(Integer, nullable=False)  # População projetada para essa idade no estado e ano
