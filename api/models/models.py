@@ -5,13 +5,13 @@ from database.db_config import Base
 class Instituicao(Base):
   __tablename__ = 'instituicoes'
 
-  id = Column(String, primary_key=True, index=True)
+  id = Column(String, primary_key=True)
   
-  co_ies = Column(Integer, unique=True, index=True, nullable=False) 
+  co_ies = Column(Integer, unique=True, nullable=False) 
   no_ies = Column(String, nullable=False) 
   sg_ies = Column(String, nullable=False)
   
-  uf_estado = Column(String, ForeignKey("estados.uf"))  # 1:N
+  id_estado = Column(String, ForeignKey("estados.id"))  # 1:N
   estado = relationship("Estado", back_populates="instituicoes")  # 1:N
   
   co_municipio = Column(Integer, nullable=False) 
@@ -24,7 +24,7 @@ class Instituicao(Base):
 class CursoInstituicao(Base):
   __tablename__ = 'cursos_instituicoes'
   
-  id = Column(String, primary_key=True, index=True)
+  id = Column(String, primary_key=True)
   
   co_ies_curso = Column(Integer, nullable=False, unique=True)
   no_curso = Column(String, nullable=False)
@@ -40,7 +40,7 @@ class CursoInstituicao(Base):
 class Chamada(Base):
   __tablename__ = 'chamadas'
   
-  id = Column(String, primary_key=True, index=True)
+  id = Column(String, primary_key=True)
   
   id_ies = Column(String, ForeignKey("instituicoes.id"))  # 1:N
   instituicao = relationship("Instituicao", back_populates="chamadas")  # 1:N
@@ -60,28 +60,40 @@ class Chamada(Base):
   nu_notacorte_concorrida = Column(Float, nullable=False)
   nu_classificacao = Column(Integer, nullable=False)
   
-  ensino_medio = Column(Boolean, nullable=False) 
-  quilombola = Column(Boolean, nullable=False) 
-  deficiente = Column(Boolean, nullable=False) 
+  ensino_medio = Column(Boolean, nullable=False, default=False) 
+  quilombola = Column(Boolean, nullable=False, default=False) 
+  deficiente = Column(Boolean, nullable=False, default=False) 
   
 class PopulacaoPorIdade(Base):
   __tablename__ = 'populacao_por_idade'
   
-  id = Column(String, primary_key=True, index=True)
+  id = Column(String, primary_key=True)
   
-  quantidade = Column(Integer, nullable=False)
+  estado_id = Column(String, ForeignKey("estados.id"), nullable=False)
+  idade_id = Column(Integer, ForeignKey("idades.id"), nullable=False)
+  ano = Column(Integer, nullable=False)  # Ano da projeção (ex: 2025, 2030, 2040)
+  
+  quantidade = Column(Integer, nullable=False)  # População projetada para essa idade no estado e ano
+
+  estado = relationship("Estado", back_populates="populacao")
+  idade = relationship("Idade", back_populates="populacao")
+  
+class Idade(Base):
+  __tablename__ = 'idades'
+
+  id = Column(String, primary_key=True)
   idade = Column(Integer, nullable=False)
-  ano = Column(Integer, nullable=False)
   
-  id_estado = Column(String, ForeignKey("estados.id"))  # 1:N
+  populacao = relationship("PopulacaoPorIdade", back_populates="idade")
   
 class Estado(Base):
   __tablename__ = 'estados'
   
-  id = Column(String, primary_key=True, index=True)
+  id = Column(String, primary_key=True)
   
   codigo = Column(Integer, unique=True, nullable=False)
-  uf = Column(String, nullable=False, unique=True, index=True)
+  uf = Column(String, nullable=False, unique=True)
   nome = Column(String, nullable=False, unique=True)
   
+  populacao = relationship("PopulacaoPorIdade", back_populates="estado")
   instituicoes = relationship("Instituicao", back_populates="estado")  # 1:N
