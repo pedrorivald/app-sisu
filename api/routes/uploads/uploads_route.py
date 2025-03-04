@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
-from models.models import Estado, Idade, Instituicao, PopulacaoPorIdade  
+from models.models import Chamada, CursoInstituicao, Estado, Idade, Instituicao, PopulacaoPorIdade  
 import unidecode  
 
 router = APIRouter(prefix="/uploads", tags=["Uploads"])
@@ -98,6 +98,21 @@ def convert_to_int(value):
     return 0
   else:
     return int(value)
+  
+def convert_to_boolean(value):
+  """
+  Converte um valor para boolean.
+  """
+  return value.strip().lower() in ['sim', 's', '1'] if value else False
+
+def convert_to_float(value):
+  """
+  Converte um valor para float, tratando valores NaN como 0.
+  """
+  if pd.isna(value):
+    return float(value.replace(',', '.').strip()) if value else float(0)
+  else:
+    return float(0)
 
 def normalizar_nome_coluna(nome: str) -> str:
   """
@@ -133,23 +148,23 @@ async def projecoes_ibge(file: UploadFile, session: AsyncSession = Depends(get_s
     
     for _, row in df.iterrows():
       cod_estado = convert_to_int(row['cod'])
-      if cod_estado not in estados:
+      if str(cod_estado) not in estados:
         novo_estado = Estado(
           id=str(uuid.uuid4()), 
           codigo=cod_estado, 
           uf=row['sigla'], 
           nome=row['local']
         )
-        estados[cod_estado] = novo_estado
+        estados[str(cod_estado)] = novo_estado
         novos_estados.append(novo_estado)
       
       idade_val = convert_to_int(row['idade'])
-      if idade_val not in idades:
+      if str(idade_val) not in idades:
         nova_idade = Idade(
           id=str(uuid.uuid4()), 
           idade=idade_val
         )
-        idades[idade_val] = nova_idade
+        idades[str(idade_val)] = nova_idade
         novos_idades.append(nova_idade) 
     
     if novos_estados:
@@ -240,6 +255,100 @@ async def instituicoes_inep(file: UploadFile, session: AsyncSession = Depends(ge
     await session.commit()
     registros = []
     
+    return {"message": "Dados inseridos com sucesso"}
+  except Exception as e:
+    await session.rollback()
+    raise HTTPException(status_code=500, detail=str(e))
+  
+COLUNAS_CHAMADAS_INEP = {
+  "co_ies": "co_ies",
+  "no_ies": "no_ies",
+  "sg_ies": "sg_ies",
+  "sg_uf_ies": "sg_uf_ies",
+  "no_campus": "no_campus",
+  "co_ies_curso": "co_ies_curso",
+  "no_curso": "no_curso",
+  "ds_turno": "ds_turno",
+  "ds_formacao": "ds_formacao",
+  "qt_vagas_concorrencia": "qt_vagas_concorrencia",
+  "co_inscricao_enem": "co_inscricao_enem",
+  "no_inscrito": "no_inscrito",
+  "no_modalidade_concorrencia": "no_modalidade_concorrencia",
+  "nu_nota_candidato": "nu_nota_candidato",
+  "nu_notacorte_concorrida": "nu_notacorte_concorrida",
+  "nu_classificacao": "nu_classificacao",
+  "ensino_medio": "ensino_medio",
+  "quilombola": "quilombola",
+  "deficiente": "deficiente",
+  "tipo_concorrencia": "tipo_concorrencia"
+}
+  
+@router.post("/chamadas-inep")
+async def chamadas_inep(file: UploadFile, session: AsyncSession = Depends(get_session)):
+  """
+  Recebe um arquivo CSV, processa os dados e insere os registros nas tabelas: Chamada e CursoInstituicao.
+  """
+  try:
+    df = pd.read_csv(io.BytesIO(await file.read()), delimiter=',', encoding="utf-8-sig")
+    df.columns = [normalizar_nome_coluna(col) for col in df.columns]
+
+    colunas_para_usar = {csv_col: model_col for csv_col, model_col in COLUNAS_CHAMADAS_INEP.items() if csv_col in df.columns}
+    df = df.rename(columns=colunas_para_usar)[list(colunas_para_usar.values())]
+    
+    print(df)
+
+    result = await session.execute(select(Instituicao))
+    instituicoes = result.scalars().all()
+    cursos = {}
+    novos_cursos = []
+    chamadas = []
+      
+    for _, row in df.iterrows():
+      co_ies_curso = convert_to_int(row['co_ies_curso'])
+      if str(co_ies_curso) not in cursos:
+        novo_curso = CursoInstituicao(
+          id = str(uuid.uuid4()),
+          co_ies_curso = convert_to_int(row['co_ies_curso']),
+          no_curso = row['no_curso'],
+          ds_formacao = row['ds_formacao'],
+          ds_turno = row['ds_turno'],
+          id_ies = next((i for i in instituicoes if i.co_ies == row['co_ies']), None).id,
+        )
+        
+        cursos[str(co_ies_curso)] = novo_curso
+        novos_cursos.append(novo_curso)
+        print(str(novo_curso))
+        
+    if novos_cursos:
+      session.add_all(novos_cursos)
+      await session.commit()
+      result = await session.execute(select(CursoInstituicao))
+      cursos = result.scalars().all()
+      
+    for _, row in df.iterrows():
+      chamada = Chamada(
+        id = str(uuid.uuid4()),
+        no_campus = row['no_campus'],
+        co_inscricao_enem = row['co_inscricao_enem'],
+        no_inscrito = row['no_inscrito'],
+        no_modalidade_concorrencia = row['no_modalidade_concorrencia'],
+        qt_vagas_concorrencia = convert_to_int(row['qt_vagas_concorrencia']),
+        nu_nota_candidato = convert_to_float(row['nu_nota_candidato']),
+        nu_notacorte_concorrida = convert_to_float(row['nu_notacorte_concorrida']),
+        nu_classificacao = convert_to_int(row['nu_classificacao']),
+        ensino_medio = convert_to_boolean(row['ensino_medio']),
+        quilombola = convert_to_boolean(row['quilombola']),
+        deficiente = convert_to_boolean(row['deficiente']),
+        id_ies = next((i for i in instituicoes if i.co_ies == row['co_ies']), None).id,
+        id_curso = next((c for c in cursos if c.co_ies_curso == row['co_ies_curso']), None).id,
+      )
+      
+      chamadas.append(chamada)
+      print(str(chamada))
+      
+    session.add_all(chamadas)
+    await session.commit()
+   
     return {"message": "Dados inseridos com sucesso"}
   except Exception as e:
     await session.rollback()
