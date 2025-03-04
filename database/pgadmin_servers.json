@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Sisu",
+      "Group": "Servers",
+      "Host": "sisu-postgres",
+      "Port": 5432,
+      "Username": "postgres",
+      "Password": "admin",
+      "SSLMode": "prefer",
+      "MaintenanceDB": "sisu",
+      "SavePassword": true
+    }
+  }
+}

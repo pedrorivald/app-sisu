@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: sisu-postgres
+    environment:
+      POSTGRES_DB: sisu
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: sisu-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pedrorivaldev@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - 15432:80
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./database/pgadmin_servers.json:/pgadmin4/servers.json
+    depends_on:
+      - postgres
+
+volumes:
+  pg_data:
+    driver: local
+  pgadmin_data:
+    driver: local
