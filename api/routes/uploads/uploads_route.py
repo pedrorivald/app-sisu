@@ -110,9 +110,9 @@ def convert_to_float(value):
   Converte um valor para float, tratando valores NaN como 0.
   """
   if pd.isna(value):
-    return float(value.replace(',', '.').strip()) if value else float(0)
-  else:
     return float(0)
+  else:
+    return float(value.replace(',', '.').strip()) if value else float(0)
 
 def normalizar_nome_coluna(nome: str) -> str:
   """
