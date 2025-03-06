@@ -4,6 +4,12 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from routes.uploads.uploads_route import router as uploads_route
 from routes.complexas_route import router as complexas_route
 from routes.graficos_route import router as graficos_route
+from routes.estados_route import router as estados_route
+from routes.chamadas_route import router as chamadas_route
+from routes.curso_instituicoes_route import router as curso_instituicoes_route
+from routes.idades_route import router as idades_route
+from routes.instituicoes_route import router as instituicoes_route
+from routes.populacao_por_idade_route import router as populacao_por_idade_route
 from database.db_config import init_db
 from exceptions.exceptions import BadRequestException, InternalServerErrorException, NotFoundException
 from exceptions.global_exception_handler import bad_request_exception_handler, global_exception_handler, http_exception_handler, internal_server_error_exception_handler, not_found_exception_handler
@@ -23,6 +29,12 @@ app.add_exception_handler(Exception, global_exception_handler)
 app.include_router(uploads_route, prefix="/api")
 app.include_router(complexas_route, prefix="/api")
 app.include_router(graficos_route, prefix="/api")
+app.include_router(estados_route, prefix="/api")
+app.include_router(chamadas_route, prefix="/api")
+app.include_router(curso_instituicoes_route, prefix="/api")
+app.include_router(idades_route, prefix="/api")
+app.include_router(instituicoes_route, prefix="/api")
+app.include_router(populacao_por_idade_route, prefix="/api")
 
 def get_log_level(status_code):
   log_levels = {
