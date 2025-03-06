@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 postgres_config = {"drivername": "postgresql+asyncpg",
-                   "host": "127.0.0.1",
+                   "host": "sisu-postgres",
                    "port": "5432",
                    "database": "sisu",
                    "username": "postgres",

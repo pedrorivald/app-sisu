@@ -1,6 +1,7 @@
 import uuid
-from fastapi import APIRouter, Query, HTTPException, Depends, status
+from fastapi import APIRouter, Query, Depends
 from sqlalchemy import func, select
+from exceptions.exceptions import NotFoundException
 from schemas.estado import EstadoCreate, EstadoOut, EstadoPaginationResponse, EstadoUpdate
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ async def get_estado(db: AsyncSession, estado_id: str):
   result = await db.execute(select(Estado).where(Estado.id == estado_id))
   estado = result.scalars().first()
   if not estado:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estado não encontrado")
+    raise NotFoundException("Estado não encontrado")
   return estado
 
 async def get_estados(db: AsyncSession, page: int = 1, size: int = 10):

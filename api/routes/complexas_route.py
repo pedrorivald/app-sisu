@@ -1,8 +1,10 @@
+from asyncpg import InternalServerError
 from fastapi import APIRouter, Query, HTTPException, Depends
 from sqlalchemy import func, select
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.models import Chamada, Estado, Idade, Instituicao, PopulacaoPorIdade  
+from exceptions.exceptions import BadRequestException
 
 router = APIRouter(prefix="/complexas", tags=["Consultas Complexas"])
   
@@ -16,6 +18,10 @@ async def get_vagas_por_estado_faixa_etaria(
   Filtra pela faixa etária de acordo com o ano de projeção e retorna as vagas pela população filtrada em cada Estado.
   Conferir em https://www.gov.br/mec/pt-br/assuntos/noticias/2025/janeiro/sisu-97-das-vagas-sao-preenchidas-em-chamada-regular
   """
+  
+  if not idade_inicial and not idade_final and not ano:
+    raise BadRequestException("Insira todos os parâmetros")
+  
   try:
     queryVagasPorEstado = (
       select(
@@ -70,7 +76,7 @@ async def get_vagas_por_estado_faixa_etaria(
     
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerError(str(e))
   
 @router.get("/estados/nota-media")
 async def get_nota_media_por_estado(
@@ -107,7 +113,7 @@ async def get_nota_media_por_estado(
     
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerError(str(e))
   
 @router.get("/instituicoes/top-10")
 async def get_top_10_instituicoes(
@@ -153,7 +159,7 @@ async def get_top_10_instituicoes(
     
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerError(str(e))
   
 @router.get("/instituicoes/alunos/top-10")
 async def get_top_10_alunos_por_instituicao(
@@ -202,7 +208,7 @@ async def get_top_10_alunos_por_instituicao(
     
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerError(str(e))
   
 @router.get("/estados/alunos/top-10-nomes")
 async def get_nome_que_mais_passaram_por_estado(
@@ -211,6 +217,10 @@ async def get_nome_que_mais_passaram_por_estado(
   """
   Filtra por estado e lista os 10 nomes que mais passaram em vagas na primeira chamada do SISU. (Apenas o primeiro nome do nome completo)
   """
+  
+  if not uf_estado:
+    raise BadRequestException("Informe todos os parâmetros")
+  
   try:
     query = (
       select(
@@ -246,7 +256,7 @@ async def get_nome_que_mais_passaram_por_estado(
     
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerError(str(e))
   
 @router.get("/alunos/top-10-nomes")
 async def get_nome_que_mais_passaram(
@@ -278,4 +288,4 @@ async def get_nome_que_mais_passaram(
     
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerError(str(e))

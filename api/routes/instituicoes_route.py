@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from sqlalchemy import func, select, text
+from exceptions.exceptions import NotFoundException
 from schemas.instituicao import InstituicaoCreate, InstituicaoOut, InstituicaoPaginationResponse, InstituicaoUpdate
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ async def get_instituicao(db: AsyncSession, instituicao_id: str):
   result = await db.execute(select(Instituicao).where(Instituicao.id == instituicao_id))
   instituicao = result.scalars().first()
   if not instituicao:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Instituicao não encontrada")
+    raise NotFoundException("Instituicao não encontrada")
   return instituicao
 
 async def get_instituicoes(db: AsyncSession, page: int = 1, size: int = 10):

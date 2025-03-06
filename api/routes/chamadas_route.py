@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from sqlalchemy import func, select
+from exceptions.exceptions import NotFoundException
 from schemas.chamada import ChamadaCreate, ChamadaOut, ChamadaPaginationResponse, ChamadaUpdate
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ async def get_chamada(db: AsyncSession, chamada_id: str):
   result = await db.execute(select(Chamada).where(Chamada.id == chamada_id))
   chamada = result.scalars().first()
   if not chamada:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chamada não encontrada")
+    raise NotFoundException("Chamada não encontrada")
   return chamada
 
 async def get_chamadas(db: AsyncSession, page: int = 1, size: int = 10):

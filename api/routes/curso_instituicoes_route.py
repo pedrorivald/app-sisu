@@ -1,6 +1,7 @@
 import uuid
-from fastapi import APIRouter, Query, HTTPException, Depends, status
+from fastapi import APIRouter, Query, Depends
 from sqlalchemy import func, select
+from exceptions.exceptions import NotFoundException
 from schemas.curso_instituicao import CursoInstituicaoCreate, CursoInstituicaoOut, CursoInstituicaoPaginationResponse, CursoInstituicaoUpdate
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ async def get_curso_instituicao(db: AsyncSession, curso_instituicao_id: str):
   result = await db.execute(select(CursoInstituicao).where(CursoInstituicao.id == curso_instituicao_id))
   curso_instituicao = result.scalars().first()
   if not curso_instituicao:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CursoInstituicao não encontrada")
+    raise NotFoundException("CursoInstituicao não encontrada")
   return curso_instituicao
 
 async def get_curso_instituicoes(db: AsyncSession, page: int = 1, size: int = 10):

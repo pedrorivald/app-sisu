@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from sqlalchemy import func, select
+from exceptions.exceptions import NotFoundException
 from schemas.populacao_por_idade import PopulacaoPorIdadeCreate, PopulacaoPorIdadeOut, PopulacaoPorIdadePaginationResponse, PopulacaoPorIdadeUpdate
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ async def get_populacao_por_idade(db: AsyncSession, populacao_por_idade_id: str)
   result = await db.execute(select(PopulacaoPorIdade).where(PopulacaoPorIdade.id == populacao_por_idade_id))
   populacao_por_idade = result.scalars().first()
   if not populacao_por_idade:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PopulacaoPorIdade não encontrada")
+    raise NotFoundException("PopulacaoPorIdade não encontrada")
   return populacao_por_idade
 
 async def get_populacao_por_idades(db: AsyncSession, page: int = 1, size: int = 10):

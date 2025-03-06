@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Query, HTTPException, Depends, status
 from sqlalchemy import func, select
+from exceptions.exceptions import NotFoundException
 from schemas.idade import IdadeCreate, IdadeOut, IdadePaginationResponse, IdadeUpdate
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ async def get_idade(db: AsyncSession, idade_id: str):
   result = await db.execute(select(Idade).where(Idade.id == idade_id))
   idade = result.scalars().first()
   if not idade:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Idade não encontrada")
+    raise NotFoundException("Idade não encontrada")
   return idade
 
 async def get_idades(db: AsyncSession, page: int = 1, size: int = 10):
