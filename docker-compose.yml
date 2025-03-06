@@ -1,6 +1,31 @@
-version: '3.8'
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+    tag: "{{.Name}}"
 
 services:
+  api_sisu:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: sisu-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    environment:
+      - OTEL_SERVICE_NAME=api_sisu
+      - OTEL_RESOURCE_ATTRIBUTES=service.version=v0.0.1,service.env=dev
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcollector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_PYTHON_LOG_CORRELATION=true
+    networks:
+      - otel
+    logging: *default-logging
+
   postgres:
     image: postgres:15
     container_name: sisu-postgres
@@ -12,7 +37,9 @@ services:
       - pg_data:/var/lib/postgresql/data
     ports:
       - 5432:5432
-
+    networks:
+      - otel
+    logging: *default-logging
   pgadmin:
     image: dpage/pgadmin4
     container_name: sisu-pgadmin
@@ -25,8 +52,87 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
       - ./api/database/pgadmin_servers.json:/pgadmin4/servers.json
+    networks:
+      - otel
     depends_on:
       - postgres
+  otelcollector:
+    privileged: true
+    user: 0:0
+    image: otel/opentelemetry-collector-contrib:0.118.0
+    container_name: sisu-otelcollector
+    volumes:
+      - ./config/collector/otelcol-config.yml:/etc/otel-collector-config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/etc/log/
+    command:
+      - "--config=/etc/otel-collector-config.yml"
+      - "--set=service.telemetry.logs.level=INFO"
+    ports:
+      - "4318:4318" # Porta OTLP HTTP
+      - "4317:4317" # Porta OTLP gRPC
+    networks:
+      - otel
+    logging: *default-logging
+  
+  # Grafana para visualização de métricas, logs e traces
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: sisu-grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./config/grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - otel
+    logging: *default-logging
+  
+  # Grafana Tempo para armaazenamento de traces
+  tempo:
+    image: grafana/tempo:2.7.0
+    container_name: sisu-tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./config/grafana/tempo.yaml:/etc/tempo.yaml
+    depends_on:
+      - grafana
+    networks:
+      - otel
+    logging: *default-logging
+  
+  # Grafana Mimir para armazenamento de métricas
+  mimir:
+    image: grafana/mimir:2.15.0
+    container_name: sisu-mimir
+    command: [ "-config.file=/etc/mimir.yaml" ]
+    volumes:
+      - ./config/grafana/mimir.yaml:/etc/mimir.yaml
+    depends_on:
+      - grafana
+    networks:
+      - otel
+    logging: *default-logging
+  
+  # Grafana Loki para armazenamento de logs
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: sisu-loki
+    command: [ "-config.file=/etc/loki/loki.yaml" ]
+    volumes:
+      - ./config/grafana/loki.yaml:/etc/loki/loki.yaml
+    depends_on:
+      - grafana
+    networks:
+      - otel
+    logging: *default-logging
+
+networks:
+  otel:
+    name: otel
+    driver: bridge
 
 volumes:
   pg_data:

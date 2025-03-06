@@ -63,7 +63,7 @@ async def get_vagas_por_estado_faixa_etaria(
         "nome_estado": res.nome,
         "total_de_vagas_estado": get_total_de_vagas_estado(res.codigo),
         "populacao_faixa_no_ano": res.populacao_faixa_no_ano,
-        "total_pessoas_por_vaga": round(res.populacao_faixa_no_ano / get_total_de_vagas_estado(res.codigo), 2) if get_total_de_vagas_estado(res.codigo) else None,
+        "total_pessoas_por_vaga": round(res.populacao_faixa_no_ano / get_total_de_vagas_estado(res.codigo)) if get_total_de_vagas_estado(res.codigo) else None,
       }
       for res in resultPopulacaoPorFaixaIdadeEstado
     ]
