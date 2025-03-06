@@ -1,9 +1,9 @@
 import uuid
-from fastapi import APIRouter, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, Depends
 import pandas as pd
 import io
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import insert, select
+from exceptions.exceptions import InternalServerErrorException
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.models import Chamada, CursoInstituicao, Estado, Idade, Instituicao, PopulacaoPorIdade  
@@ -206,7 +206,7 @@ async def projecoes_ibge(file: UploadFile, session: AsyncSession = Depends(get_s
     return {"message": "Dados inseridos com sucesso"}
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerErrorException(str(e))
   
 COLUNAS_INSTITUICOES_INEP = {
   "co_ies": "co_ies",
@@ -258,7 +258,7 @@ async def instituicoes_inep(file: UploadFile, session: AsyncSession = Depends(ge
     return {"message": "Dados inseridos com sucesso"}
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerErrorException(str(e))
   
 COLUNAS_CHAMADAS_INEP = {
   "co_ies": "co_ies",
@@ -295,8 +295,6 @@ async def chamadas_inep(file: UploadFile, session: AsyncSession = Depends(get_se
     colunas_para_usar = {csv_col: model_col for csv_col, model_col in COLUNAS_CHAMADAS_INEP.items() if csv_col in df.columns}
     df = df.rename(columns=colunas_para_usar)[list(colunas_para_usar.values())]
     
-    print(df)
-
     result = await session.execute(select(Instituicao))
     instituicoes = result.scalars().all()
     cursos = {}
@@ -317,10 +315,19 @@ async def chamadas_inep(file: UploadFile, session: AsyncSession = Depends(get_se
         
         cursos[str(co_ies_curso)] = novo_curso
         novos_cursos.append(novo_curso)
-        print(str(novo_curso))
         
     if novos_cursos:
-      session.add_all(novos_cursos)
+      batch_size = 5_000
+      for i in range(0, len(novos_cursos), batch_size):
+        batch = novos_cursos[i:i + batch_size]
+        
+        data = [u.__dict__ for u in batch]
+        for d in data:
+          d.pop("_sa_instance_state", None)
+
+        await session.execute(insert(CursoInstituicao), data)
+        print(f"{i} lote de cursos inserido")
+      
       await session.commit()
       result = await session.execute(select(CursoInstituicao))
       cursos = result.scalars().all()
@@ -344,12 +351,21 @@ async def chamadas_inep(file: UploadFile, session: AsyncSession = Depends(get_se
       )
       
       chamadas.append(chamada)
-      print(str(chamada))
       
-    session.add_all(chamadas)
+    batch_size = 10_000
+    for i in range(0, len(chamadas), batch_size):
+      batch = chamadas[i:i + batch_size]
+      
+      data = [u.__dict__ for u in batch]
+      for d in data:
+        d.pop("_sa_instance_state", None)
+          
+      await session.execute(insert(Chamada), data)
+      print(f"{i} lote de chamadas inserido")
+      
     await session.commit()
    
     return {"message": "Dados inseridos com sucesso"}
   except Exception as e:
     await session.rollback()
-    raise HTTPException(status_code=500, detail=str(e))
+    raise InternalServerErrorException(str(e))

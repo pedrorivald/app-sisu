@@ -1,10 +1,9 @@
-from asyncpg import InternalServerError
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, Depends
 from sqlalchemy import func, select
 from database.db_config import get_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.models import Chamada, Estado, Idade, Instituicao, PopulacaoPorIdade  
-from exceptions.exceptions import BadRequestException
+from exceptions.exceptions import BadRequestException, InternalServerErrorException
 
 router = APIRouter(prefix="/complexas", tags=["Consultas Complexas"])
   
@@ -76,7 +75,7 @@ async def get_vagas_por_estado_faixa_etaria(
     
   except Exception as e:
     await session.rollback()
-    raise InternalServerError(str(e))
+    raise InternalServerErrorException(str(e))
   
 @router.get("/estados/nota-media")
 async def get_nota_media_por_estado(
@@ -113,7 +112,7 @@ async def get_nota_media_por_estado(
     
   except Exception as e:
     await session.rollback()
-    raise InternalServerError(str(e))
+    raise InternalServerErrorException(str(e))
   
 @router.get("/instituicoes/top-10")
 async def get_top_10_instituicoes(
@@ -159,7 +158,7 @@ async def get_top_10_instituicoes(
     
   except Exception as e:
     await session.rollback()
-    raise InternalServerError(str(e))
+    raise InternalServerErrorException(str(e))
   
 @router.get("/instituicoes/alunos/top-10")
 async def get_top_10_alunos_por_instituicao(
@@ -208,7 +207,7 @@ async def get_top_10_alunos_por_instituicao(
     
   except Exception as e:
     await session.rollback()
-    raise InternalServerError(str(e))
+    raise InternalServerErrorException(str(e))
   
 @router.get("/estados/alunos/top-10-nomes")
 async def get_nome_que_mais_passaram_por_estado(
@@ -256,7 +255,7 @@ async def get_nome_que_mais_passaram_por_estado(
     
   except Exception as e:
     await session.rollback()
-    raise InternalServerError(str(e))
+    raise InternalServerErrorException(str(e))
   
 @router.get("/alunos/top-10-nomes")
 async def get_nome_que_mais_passaram(
@@ -288,4 +287,4 @@ async def get_nome_que_mais_passaram(
     
   except Exception as e:
     await session.rollback()
-    raise InternalServerError(str(e))
+    raise InternalServerErrorException(str(e))
