@@ -26,7 +26,7 @@ class ChamadaOut(ChamadaBase):
   id: str
 
   class Config:
-    orm_mode = True
+    from_attributes = True
 
 class ChamadaPaginationResponse(BaseModel):
   page: int

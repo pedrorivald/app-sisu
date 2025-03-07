@@ -4,11 +4,7 @@
 python -m venv .venv
 .venv\Scripts\activate
 
-## Rodar docker compose com banco de dados
-docker-compose up --build -d
-
-## Pausar docker compose
-docker-compose down
+pip install --no-cache-dir -r requirements.txt
 
 ## Links para as base de dados
 INEP:
@@ -18,7 +14,7 @@ INEP:
 IBGE:
   - https://www.ibge.gov.br/estatisticas/sociais/populacao/9109-projecao-da-populacao.html
 
-## Coletar Instituições em JSON
+## Coletar Instituições em JSON e CSV
 Contém todas as instituições do SISU no Brasil
 python .\scripts\coleta-de-dados\coleta_instituicoes.py
 
@@ -34,5 +30,8 @@ python .\scripts\coleta-de-dados\concatenar_planilhas_instituicoes.py
 Além disso para padronizar e remover as 5 linhas iniciais desnecessárias
 python .\scripts\coleta-de-dados\transformar_ods_para_csv_ibge.py
 
-## Salvar planilhas da Chamada Regular no Banco
-python .\coleta_chamada_regular.py
+## Rodar docker compose com banco de dados
+docker-compose up --build -d
+
+## Pausar docker compose
+docker-compose down

@@ -14,7 +14,7 @@ class IdadeOut(IdadeBase):
   id: str
 
   class Config:
-    orm_mode = True
+    from_attributes = True
 
 class IdadePaginationResponse(BaseModel):
   page: int
